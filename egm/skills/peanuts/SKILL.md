@@ -75,3 +75,64 @@ description: 当用户想要为大型遗留代码库引导文档时，构建一�
 peanuts 的输出是 elephant 的输入。当 elephant 技能启动时，它读取根 README.md 以了解系统架构，然后开始设计对话。
 
 这就是为什么人工审查关卡至关重要：如果 README 不准确，elephant 将从错误的假设开始。
+
+## 提示词
+
+`peanuts` 使用 `peanuts` 提示词来指导智能体构建 README 文件。提示词告诉智能体：
+
+- 如何识别叶子目录
+- 如何编写 README
+- 何时暂停进行人工审查
+- 如何向上合并到父目录
+
+## 示例
+
+假设你有一个代码库，结构如下：
+
+```
+src/
+├── auth/
+│   ├── login.py
+│   └── logout.py
+├── api/
+│   ├── users.py
+│   └── posts.py
+└── main.py
+```
+
+`peanuts` 会：
+
+1. 从 `auth/` 和 `api/` 开始（叶子目录）
+2. 为每个目录编写 README
+3. 等待人工审查
+4. 合并到 `src/`
+5. 为 `src/` 编写 README
+6. 等待人工审查
+7. 合并到根目录
+
+最终输出：
+
+```
+src/
+├── README.md
+├── auth/
+│   ├── README.md
+│   ├── login.py
+│   └── logout.py
+├── api/
+│   ├── README.md
+│   ├── users.py
+│   └── posts.py
+└── main.py
+README.md
+```
+
+## 限制
+
+- `peanuts` 只创建 README 文件。它不设计功能、不审查代码、不实施更改。
+- 人工审查关卡是强制的。不要跳过它们。
+- README 质量取决于智能体对代码的理解。如果代码混乱，README 也会混乱。
+
+## 如果 Python 不可用
+
+如果 Python 不可用，手动执行相同操作：使用 `git ls-files` 列出目录，从最深到最浅排序，然后在汇总之前检查每个父目录的子目录。

@@ -48,3 +48,22 @@ Goldfish 审查有以下限制：
 - 审查者没有 Elephant 对话的上下文
 - 审查质量取决于设计文档的清晰度
 - 如果设计文档模糊，审查者可能会错过问题或报告误报
+
+## 与 harness 的集成
+
+不同的 AI harness 以不同的方式支持技能。Goldfish 技能需要能够启动三个全新的 AI 会话。
+
+### Claude Code
+
+Claude Code 支持斜杠命令。你可以使用 `/goldfish` 启动技能。对于并行审查，你需要启动三个独立的 Claude Code 实例。
+
+### Aider
+
+Aider 没有技能加载器，因此你需要手动启动三个 Aider 会话。每个会话应该是一个全新的 `aider` 进程，从未见过你的设计聊天。
+
+### 自定义 harness
+
+如果你正在构建自己的 harness，你需要：
+1. 读取 `SKILL.md` frontmatter 以了解何时激活技能
+2. 将技能正文附加到系统提示词中
+3. 提供一种启动全新会话的方法（用于并行审查）

@@ -1,130 +1,115 @@
-# Mean Review 演练
+# mean-review：给予审查者刻薄的许可
 
-> **Phase 4, Step 9**
+## 它解决什么问题
 
-`mean-review` 尽可能严格地审查差异，执行四次脚本强制扫描。
+代码审查经常因为礼貌而变得软弱。审查者说"这看起来不错"因为他们不想打扰作者，或者因为他们不知道问题在哪里。
 
-## 它做什么
+`mean-review` 通过运行四次脚本强制扫描来解决这个问题：结构、安全、性能和可维护性。脚本强制执行这些扫描，因此审查者不能跳过它们。结果是更严格、更一致的审查。
 
-Mean Review 技能审查 `egm-implement` 产生的差异，以查找代码中存在的问题。它执行四次扫描，每次扫描关注不同的质量维度：
+## 它如何触发
 
-1. **结构扫描** — 代码结构是否合理？模块是否分离良好？命名是否一致？
-2. **安全扫描** — 是否有安全漏洞？是否有未验证的输入？是否有硬编码的凭证？
-3. **性能扫描** — 是否有性能问题？是否有低效的算法？是否有不必要的计算？
-4. **可维护性扫描** — 代码是否易于理解？是否有适当的注释？是否有适当的错误处理？
+当用户提到以下内容时，此技能激活：
+- 代码审查
+- 审查 PR
+- "审查此代码"
+- "检查我的更改"
 
-每次扫描产生一份待办清单。人类修复问题，然后重新运行审查，直到所有扫描通过。
+## SKILL.md 逐节解析
 
-## 何时使用
+### Frontmatter
 
-- 在 `egm-implement` 之后（需要实现才能审查）
-- 作为 EGM 方法的最终质量关卡
+```yaml
+name: mean-review
+description: 当用户想要严格审查代码更改时，运行四次脚本强制扫描。
+```
 
-## 执行步骤
+- **name** — 技能的短名称
+- **description** — 触发器词和技能功能的摘要
 
-### 步骤 1：设置
+### 正文
 
-1. 创建一个新的 docs/egm/<slug>/ 文件夹（如果不存在）
-2. 复制 `mean-review-ledger-template.md` 到 `docs/egm/<slug>/MEAN-REVIEW.md`
-3. 运行 `git diff` 以获取待审查的更改
-4. 读取设计文档（docs/designs/<slug>.md）以了解应该构建的内容
+正文分为五个步骤：
 
-### 步骤 2：运行四次扫描
+1. **设置** — 创建文件夹、复制模板、运行 git diff
+2. **运行四次扫描** — 按顺序运行结构、安全、性能、可维护性扫描
+3. **处理阻塞问题** — 如果有阻塞问题，停止并通知人类
+4. **修复和重新运行** — 人类修复问题，重新运行审查
+5. **完成** — 当所有扫描通过时标记审查完成
 
-按顺序运行四次扫描。对于每次扫描：
+每个步骤都指定了智能体应该做什么、输入是什么、输出是什么。
 
-1. 使用适当的提示词（从 `mean-review-ledger-template.md` 中提取）审查差异
-2. 识别问题并分类为：
-   - **阻塞** — 必须修复才能继续
-   - **严重** — 应该修复，但不阻止发布
-   - **警告** — 应该修复，但不紧急
-   - **信息** — 值得注意，但不要求修复
-3. 将问题记录到 `MEAN-REVIEW.md`
+## SKILL.md 之外的内容
 
-### 步骤 3：处理阻塞问题
+### Assets
 
-如果有任何阻塞问题：
-1. **停止** — 不要继续审查
-2. 通知人类存在阻塞问题
-3. 人类修复问题
-4. 返回步骤 1（重新运行审查）
+- `assets/mean-review-ledger-template.md` — MEAN-REVIEW.md 的模板
 
-### 步骤 4：修复和重新运行
+### Scripts
 
-对于非阻塞问题：
-1. 人类修复问题（或决定跳过）
-2. 重新运行审查
-3. 返回步骤 2
+- `scripts/enforced_scans.py` — 执行四次扫描的脚本
 
-### 步骤 5：完成
+### Evals
 
-当所有四次扫描通过（无阻塞问题）时：
-1. 更新 `MEAN-REVIEW.md` 以标记审查完成
-2. 提交代码（如果适用）
-3. 将控制权交还给人类进行最终审查
+- `evals/trigger-evals.json` — 触发测试
 
-## 输出
+## 工作示例
 
-- `docs/egm/<slug>/MEAN-REVIEW.md` — 账本文件，记录审查发现和修复决策
+以下是一个完整示例，展示 mean-review 在实际代码上的工作流程。
 
-## 设计原则
+假设你刚刚使用 `egm-implement` 实现了一个 webhook 重试功能。你启动 `mean-review`：
 
-Mean Review 是"mean"的，因为它被设计为严格的。它不会因为"代码看起来还可以"就通过。它寻找问题，因为它知道人类会跳过它们。
+**步骤 1.** 技能运行 `enforced_scans.py`。脚本报告：
 
-脚本强制执行四次扫描以确保全面性。如果没有脚本，智能体可能会跳过它认为不重要的扫描。脚本确保每次审查都涵盖所有四个维度。
+```
+$ git diff --name-only main...HEAD | python3 ~/.claude/skills/mean-review/scripts/enforced_scans.py --stdin
+shipyard/notify/worker.py:88  silent-except  except Exception swallows the error (no raise, no log)
+shipyard/notify/worker.py:41-62  10-line  17 code lines with no comment
+shipyard/notify/worker.py:30  fn-length  drain() body is 64 lines (limit 50)
+shipyard/notify/outbox.py:22  weak-name  data (parameter)
+skipped deploy/worker.yaml: no rules for .yaml files
+skipped docs/designs/webhook-retries.md: no rules for .md files
+skipped docs/egm/webhook-retries/IMPLEMENT.md: no rules for .md files
+4 finding(s) in 7 scanned file(s); 3 skipped
+```
 
-## 扫描规则
+**步骤 2.** 步骤 3 说要在每个跳过的文件上手动运行扫描，这些文件仍然存在，因此模型检查所有三个。YAML 是部署配置，是声明式的，两个 Markdown 文件是 prose。没有什么可标记的。
 
-### 结构扫描
+**步骤 3.** 阅读完整的 `worker.py`，模型发现扫描无法看到的真正问题：worker 在 HTTP 调用返回*之前*将事件标记为 `sent`，因此两者之间的崩溃会丢失事件，这正是该功能存在以防止的失败。
 
-- 检查模块分离：每个模块是否有一个明确的职责？
-- 检查命名：名称是否清晰且一致？
-- 检查依赖：依赖是否清晰且最小化？
-- 检查接口：接口是否定义良好且使用一致？
+**步骤 4.** 模型将此列表附加到 `docs/egm/webhook-retries/MEAN-REVIEW.md` 作为 Pass 1。
 
-### 安全扫描
+**步骤 5.**
 
-- 检查输入验证：所有外部输入是否已验证？
-- 检查认证：认证和授权是否正确实施？
-- 检查加密：敏感数据是否加密？
-- 检查凭证：是否有硬编码的凭证或密钥？
+```
+1. [correctness] shipyard/notify/worker.py:71 Event is marked sent before the POST returns; a crash in between drops it, which is the bug this feature exists to fix. Fix: mark sent only after a 2xx, inside the same transaction as the attempt record.
+2. [correctness] shipyard/notify/outbox.py:40 `get_due()` returns events ordered by id, but the doc promises per-order ordering by creation time. Fix: order by (order_id, created_at), and test it.
+3. [correctness][enforced] shipyard/notify/worker.py:88 `except Exception:` swallows everything, including the database error that would tell you the outbox is broken. Fix: catch the HTTP client's error only; log and re-raise the rest.
+4. [readability][enforced] shipyard/notify/worker.py:41-62 The backoff calculation has no comment saying why the base is 30 seconds or why the cap is 1 hour. Fix: two lines stating the policy and pointing at the design doc section.
+5. [readability][enforced] shipyard/notify/worker.py:30 `drain()` is 64 lines and claims, sends, and reschedules. Fix: split send and reschedule into their own functions.
+6. [nit][enforced] shipyard/notify/outbox.py:22 `data` says nothing. Fix: `payload`.
+```
 
-### 性能扫描
+发现 1 不在 `IMPLEMENT.md` 的漂移日志中，发现 2 与设计文档相矛盾。这正是步骤 1 中的交叉检查的目的。
 
-- 检查算法：算法是否高效？
-- 检查数据库查询：查询是否优化？
-- 检查缓存：是否有适当的缓存策略？
-- 检查资源：资源是否被正确释放？
+人类修复所有六个问题，模型将其记录在 `### Pass 1 disposition` 下。重新运行，保存为 Pass 2，返回两个琐碎修改。完成。
 
-### 可维护性扫描
+## 技能与文章的对比
 
-- 检查注释：代码是否有足够的注释？
-- 检查错误处理：错误是否被适当处理？
-- 检查日志：是否有适当的日志记录？
-- 检查测试：是否有足够的测试？
+文章提供了提示词、10 行规则、"要求严格的 readability"和循环。技能添加了：
+- 作用域规则
+- 全文件读取规则
+- 脚本背后的三次强制扫描
+- 声明式豁免
+- 优先待办清单格式
+- 语气规则
+- 与设计文档和 `IMPLEMENT.md` 的交叉检查
+- 保留每次扫描的账本
 
-## 提示词
+## 审查问题和练习
 
-`mean-review` 使用 `mean-review` 提示词来指导四次扫描。提示词告诉智能体：
-
-- 每次扫描关注什么
-- 如何识别问题
-- 如何分类问题
-- 如何记录发现
-
-## 示例
-
-假设你已实现了一个功能。你启动 `mean-review`：
-
-1. 结构扫描：智能体发现一个文件有 200 行，应该被拆分。
-2. 安全扫描：智能体发现一个 SQL 查询没有参数化。
-3. 性能扫描：智能体发现一个循环在每次迭代中都查询数据库。
-4. 可维护性扫描：智能体发现一个函数没有文档字符串。
-
-人类修复所有四个问题，然后重新运行审查。第二次运行通过所有扫描。
-
-## 限制
-
-- `mean-review` 只审查代码。它不设计功能、不实施代码、不运行测试。
-- 扫描是启发式的。它们可能报告误报或错过问题。
-- 审查质量取决于智能体对代码的理解。如果代码混乱，审查也会混乱。
+1. 为什么技能坚持逐字使用框架提示词？写一个合理的改述，并解释它如何让审查变得宽松。
+2. 在你为本课程编写的代码上运行 `enforced_scans.py`。选择一个 `10-line` 发现并编写它想要的注释。这个注释有用，还是规则 misfire 了？如果 misfire 了，这个 span 是声明式的吗？
+3. 脚本将非 Python 发现标记为 `[heuristic]`。找到一个 JavaScript 或 shell 代码片段，其中行规则给出了错误的答案（误报或遗漏），并解释解析器会如何处理不同。
+4. 待办清单将正确性放在可读性之前，但 10 行规则被称为至关重要。论证一个无注释的 20 行代码块既是正确性风险也是样式问题。
+5. 用户以理由拒绝一个发现，步骤 1 说在没有新证据的情况下不要再次提出它。描述一个代码变更会算作新证据，另一个不会。
+6. 在同一个差异上要求模型进行两次代码审查：一次普通，一次使用 Rensin 的框架提示词。计算每次的发现数量并分类。除了语气，还有什么变化？
